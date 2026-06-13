@@ -52,8 +52,8 @@ jobs:
         cd backend/
         python manage.py test
 
-  build_and_push_to_docker_hub:
-    name: Push Docker image to DockerHub
+  build_and_push_to_cloud.ru:
+    name: Push Docker image to Cloud.ru
     runs-on: ubuntu-latest
     needs: tests
     steps:
@@ -70,10 +70,77 @@ jobs:
           registry: sergeipronin.cr.cloud.ru  # URI вашего реестра
           username: ${{ secrets.CLOUD_USERNAME }}
           password: ${{ secrets.CLOUD_PASSWORD }}
-      - name: Build and push to Cloud.ru
+      - name: Push to Cloud.ru
         uses: docker/build-push-action@v4
         with:
           context: ./backend/
           push: true
           tags: |
             sergeipronin.cr.cloud.ru/taski_backend:latest
+
+  frontend_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up nodeJS
+      # Это готовый воркфлоу для установки Node.js на раннер
+      uses: actions/setup-node@v3
+      with:
+        # Это параметр воркфлоу, указывающий нужную версию Node.js
+        node-version: 18
+
+    - name: Install dependencies
+      # Эта команда устанавливает зависимости для фронтенда
+      run: |
+        cd frontend/
+        npm ci
+
+    - name: Test frontend
+      # Запускаем тесты
+      run: |
+        cd frontend/
+        npm run test
+
+  build_frontend_and_push_to_cloud:
+    name: Push frontend Docker image to Cloud.ru
+    runs-on: ubuntu-latest
+    needs: frontend_tests
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Cloud.ru Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: sergeipronin.cr.cloud.ru
+          username: ${{ secrets.CLOUD_USERNAME }}
+          password: ${{ secrets.CLOUD_PASSWORD }}
+      - name: Push to Cloud.ru
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend/
+          push: true
+          tags: sergeipronin.cr.cloud.ru/taski_frontend:latest
+
+  build_gateway_and_push_to_cloude:
+    name: Push gateway Docker image to Cloude.ru
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Cloud.ru Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: sergeipronin.cr.cloud.ru
+          username: ${{ secrets.CLOUD_USERNAME }}
+          password: ${{ secrets.CLOUD_PASSWORD }}
+      - name: Push to Cloud.ru
+        uses: docker/build-push-action@v4
+        with:
+          context: ./gateway/
+          push: true
+          tags: sergeipronin.cr.cloud.ru/taski_gateway:latest
