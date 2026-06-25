@@ -5,12 +5,13 @@ volumes:
 services:
   db:
     image: postgres:13.10
+    restart: unless-stopped
     env_file: .env
     volumes:
       - pg_data_production:/var/lib/postgresql/data
   backend:
     image: sergeipronin/taski_backend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - db
     env_file: .env
@@ -24,6 +25,7 @@ services:
       - static_volume:/frontend_static
   gateway:
     image: sergeipronin/taski_gateway
+    restart: unless-stopped
     depends_on:
       - backend
     env_file: .env
